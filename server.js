@@ -1,4 +1,5 @@
 // server.js
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
@@ -7,7 +8,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Replace with your frontend URL in production
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -16,11 +17,10 @@ app.use(express.json());
 const dataDir = path.join(__dirname, 'data');
 fs.mkdir(dataDir, { recursive: true }).catch(console.error);
 
-// Validate email format
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+// Health check endpoint for Render
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
 
 // API endpoint to handle contact form submissions
 app.post('/api/contact', async (req, res) => {
@@ -32,34 +32,6 @@ app.post('/api/contact', async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'All fields are required' 
-      });
-    }
-
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid email format' 
-      });
-    }
-
-    if (name.length > 100) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Name must be less than 100 characters' 
-      });
-    }
-
-    if (email.length > 255) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email must be less than 255 characters' 
-      });
-    }
-
-    if (message.length > 1000) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Message must be less than 1000 characters' 
       });
     }
 
@@ -92,7 +64,7 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8000; // Matching the port in your frontend code
+const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
