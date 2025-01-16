@@ -7,10 +7,22 @@ const path = require('path');
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+
+
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173', // If using Vite
+    'https://jeddynzila.netlify.app/', // Add your frontend domain
+    // Add any other domains that need access
+  ],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Accept'],
+  credentials: false // Change to false since we're not using credentials
+};
+
+app.use(cors(corsOptions));;
 app.use(express.json());
 
 // Create data directory if it doesn't exist
@@ -24,6 +36,8 @@ app.get('/', (req, res) => {
 
 // API endpoint to handle contact form submissions
 app.post('/api/contact', async (req, res) => {
+   console.log('Received contact form submission');
+  console.log('Request body:', req.body);
   try {
     const { name, email, message } = req.body;
 
