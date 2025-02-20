@@ -1,81 +1,105 @@
-require('dotenv').config();
+// Import dependencies
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs').promises;
-const path = require('path');
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const app = express();
 
-// Middleware
+// CORS configuration
 const corsOptions = {
   origin: [
     'http://localhost:3000',
-    'http://localhost:5173',
     'https://jeddynzila.netlify.app',
+    'https://my-portfolio-backend-srry.onrender.com'
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept'],
-  credentials: false,
+  credentials: true
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Debugging middleware
-app.use((req, res, next) => {
-  console.log(`Incoming request: ${req.method} ${req.url}`);
-  next();
-});
+// Database connection configuration
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+};
 
-// Create data directory if it doesn't exist
-const dataDir = path.join(__dirname, 'data');
-fs.mkdir(dataDir, { recursive: true }).catch(console.error);
+// Create connection pool
+const pool = mysql.createPool(dbConfig);
 
-// Health check endpoint for Render
-app.get('/', (req, res) => {
-  res.send('Server is running');
-});
+// Test database connection
+pool.getConnection()
+  .then(connection => {
+    console.log('Successfully connected to the database.');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('Error connecting to the database:', err);
+  });
 
-// Handle preflight requests explicitly (if necessary)
-app.options('/api/contact', cors(corsOptions));
-
-// API endpoint to handle contact form submissions
+// Contact form endpoint - Save message
 app.post('/api/contact', async (req, res) => {
   console.log('Received contact form submission');
-  console.log('Request body:', req.body);
+  
   try {
     const { name, email, message } = req.body;
 
-    if (!name || !email || !message) {
+    // Validate input
+    if (!name?.trim() || !email?.trim() || !message?.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required',
+        message: 'All fields are required'
       });
     }
 
-    const timestamp = new Date().toISOString();
-    const data = {
-      timestamp,
-      name,
-      email,
-      message,
-    };
+    // Insert into database
+    const query = `
+      INSERT INTO contact_messages 
+      (name, email, message, created_at) 
+      VALUES (?, ?, ?, NOW())
+    `;
 
-    const filename = path.join(dataDir, `contact_${timestamp.replace(/[:.]/g, '-')}.json`);
-    await fs.writeFile(filename, JSON.stringify(data, null, 2));
+    const [result] = await pool.execute(query, [
+      name.trim(),
+      email.trim(),
+      message.trim()
+    ]);
+
+    console.log('Message stored in database with ID:', result.insertId);
 
     res.status(200).json({
       success: true,
-      message: 'Thank you for your message. I will get back to you soon!',
+      message: 'Thank you for your message. I will get back to you soon!'
     });
+    
   } catch (error) {
-    console.error('Error saving contact form data:', error);
+    console.error('Error storing message:', error);
     res.status(500).json({
       success: false,
-      message: 'Unable to process your request. Please try again later.',
+      message: 'Unable to process your request. Please try again later.'
     });
   }
 });
 
+// Retrieve messages
+app.get('/api/contact', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM contact_messages ORDER BY created_at DESC');
+    res.json({ success: true, messages: rows });
+  } catch (error) {
+    console.error('Error retrieving messages:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving messages' });
+  }
+});
+
+// Start server
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
