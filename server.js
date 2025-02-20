@@ -1,17 +1,19 @@
 // Import dependencies
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const dotenv = require('dotenv');
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 8000;
 
-// CORS configuration
+// Configure CORS
 const corsOptions = {
   origin: [
-    'http://localhost:3000',
+    'http://localhost:3000', 
     'https://jeddynzila.netlify.app',
     'https://my-portfolio-backend-srry.onrender.com'
   ],
@@ -19,88 +21,65 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Accept'],
   credentials: true
 };
-
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Database connection configuration
-const dbConfig = {
+// Configure PostgreSQL connection
+const pool = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-};
-
-// Create connection pool
-const pool = mysql.createPool(dbConfig);
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+  ssl: { rejectUnauthorized: false } // Required for Render
+});
 
 // Test database connection
-pool.getConnection()
-  .then(connection => {
-    console.log('Successfully connected to the database.');
-    connection.release();
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:', err);
-  });
+pool.connect()
+  .then(() => console.log('✅ Connected to PostgreSQL'))
+  .catch(err => console.error('❌ PostgreSQL connection error:', err));
 
-// Contact form endpoint - Save message
+// 📨 Save Contact Form Message
 app.post('/api/contact', async (req, res) => {
-  console.log('Received contact form submission');
-  
+  console.log('📩 Received contact form submission');
+
   try {
     const { name, email, message } = req.body;
 
     // Validate input
     if (!name?.trim() || !email?.trim() || !message?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'All fields are required'
-      });
+      return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
     // Insert into database
     const query = `
-      INSERT INTO contact_messages 
-      (name, email, message, created_at) 
-      VALUES (?, ?, ?, NOW())
+      INSERT INTO contact_messages (name, email, message, created_at) 
+      VALUES ($1, $2, $3, NOW()) RETURNING id
     `;
+    const result = await pool.query(query, [name.trim(), email.trim(), message.trim()]);
 
-    const [result] = await pool.execute(query, [
-      name.trim(),
-      email.trim(),
-      message.trim()
-    ]);
+    console.log('✅ Message stored in database with ID:', result.rows[0].id);
+    res.status(200).json({ success: true, message: 'Message received. I will get back to you soon!' });
 
-    console.log('Message stored in database with ID:', result.insertId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Thank you for your message. I will get back to you soon!'
-    });
-    
   } catch (error) {
-    console.error('Error storing message:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Unable to process your request. Please try again later.'
-    });
+    console.error('❌ Error storing message:', error);
+    res.status(500).json({ success: false, message: 'Unable to process your request' });
   }
 });
 
-// Retrieve messages
+// 📩 Retrieve Contact Messages
 app.get('/api/contact', async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM contact_messages ORDER BY created_at DESC');
-    res.json({ success: true, messages: rows });
+    const result = await pool.query('SELECT * FROM contact_messages ORDER BY created_at DESC');
+    res.json({ success: true, messages: result.rows });
+
   } catch (error) {
-    console.error('Error retrieving messages:', error);
+    console.error('❌ Error retrieving messages:', error);
     res.status(500).json({ success: false, message: 'Error retrieving messages' });
   }
 });
 
-// Start server
-const PORT = process.env.PORT || 8000;
+// 🌍 Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
