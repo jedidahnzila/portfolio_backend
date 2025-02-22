@@ -10,11 +10,18 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Configure CORS
-app.use(cors({
-  origin: 'https://jeddynzila.netlify.app/' // Replace with your Netlify URL
-}));
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'https://jeddynzila.netlify.app',
+    'https://my-portfolio-backend-srry.onrender.com'
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  credentials: true
+};
 
-// app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Configure PostgreSQL connection using DATABASE_URL
