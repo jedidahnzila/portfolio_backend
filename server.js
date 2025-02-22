@@ -12,9 +12,9 @@ const PORT = process.env.PORT || 8000;
 // Configure CORS
 const corsOptions = {
   origin: [
-    'http://localhost:3000',
+
     'https://jeddynzila.netlify.app',
-    'https://my-portfolio-backend-srry.onrender.com'
+    
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
