@@ -1,7 +1,6 @@
 // Load environment variables early
 require('dotenv').config();
 const cron = require('node-cron');
-const fetch = require('node-fetch');
 
 // Import dependencies
 const express = require('express');
@@ -101,12 +100,13 @@ app.get('/api/contact', async (req, res) => {
 
 cron.schedule('*/5 * * * *', async () => {
   try {
-    await fetch('https://my-portfolio-backend-srry.onrender.com');
+    await fetch('https://https://my-portfolio-backend-srry.onrender.com/ping'); // No need to import fetch
     console.log('Keep-alive ping sent');
   } catch (error) {
     console.error('Ping failed:', error.message);
   }
 });
+
 
 // Start the server
 app.listen(PORT, () => {
