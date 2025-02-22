@@ -1,5 +1,7 @@
 // Load environment variables early
 require('dotenv').config();
+const cron = require('node-cron');
+const fetch = require('node-fetch');
 
 // Import dependencies
 const express = require('express');
@@ -24,10 +26,21 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1); // Force restart by Render
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
 // Configure PostgreSQL connection using DATABASE_URL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL, // Use DATABASE_URL directly
-  ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false } // Required for Render
+  ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+  idleTimeoutMillis: 30000, // Close idle connections after 30s
+  keepAlive: true,  // Required for Render
 });
 
 // Handle unexpected PostgreSQL errors
@@ -83,6 +96,15 @@ app.get('/api/contact', async (req, res) => {
   } catch (error) {
     console.error('❌ Error retrieving messages:', error.message);
     res.status(500).json({ success: false, message: 'Error retrieving messages' });
+  }
+});
+
+cron.schedule('*/5 * * * *', async () => {
+  try {
+    await fetch('https://my-portfolio-backend-srry.onrender.com');
+    console.log('Keep-alive ping sent');
+  } catch (error) {
+    console.error('Ping failed:', error.message);
   }
 });
 
