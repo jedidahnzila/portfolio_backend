@@ -10,11 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Configure CORS
-app.use(cors({
-  origin: 'https://jeddynzila.netlify.app', // Allow requests from your frontend
-  methods: ['POST', 'GET', 'OPTIONS'], // Allow these HTTP methods
-  allowedHeaders: ['Content-Type']
-}));
+app.use(cors()); // Allows all origins (not recommended for production)
+
 
 // app.use(cors(corsOptions));
 app.use(express.json());
