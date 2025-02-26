@@ -1,4 +1,6 @@
-// Load environment variables early
+
+const cors = require('cors');
+
 require('dotenv').config();
 
 // Import dependencies
