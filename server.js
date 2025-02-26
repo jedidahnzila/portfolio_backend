@@ -7,17 +7,15 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT ||5000;
 
 // Configure CORS
 app.use(cors({
-  origin: 'https://jeddynzila.netlify.app', // Your Netlify URL
+  origin: process.env.FRONTEND_URL|'https://jeddynzila.netlify.app', 
   methods: ['GET', 'POST'],
   credentials: true
 }));
 
-
-// app.use(cors(corsOptions));
 app.use(express.json());
 
 process.on('uncaughtException', (err) => {
@@ -31,10 +29,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Configure PostgreSQL connection using DATABASE_URL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Use DATABASE_URL directly
+  connectionString: process.env.DATABASE_URL, 
   ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
-  idleTimeoutMillis: 30000, // Close idle connections after 30s
-  keepAlive: true,  // Required for Render
+  idleTimeoutMillis: 30000,
+  keepAlive: true,  
 });
 
 // Handle unexpected PostgreSQL errors
