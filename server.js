@@ -12,7 +12,7 @@ const PORT = process.env.PORT ||5000;
 
 // Configure CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL|'https://jeddynzila.netlify.app', 
+  origin: process.env.FRONTEND_URL||'https://jeddynzila.netlify.app', 
   methods: ['GET', 'POST'],
   credentials: true
 }));
